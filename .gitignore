@@ -4,3 +4,4 @@ Cargo.lock
 bin/
 pkg/
 wasm-pack.log
+www/v8-compile-cache-0/

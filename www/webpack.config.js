@@ -2,12 +2,9 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require('path');
 
 module.exports = {
-  entry: [
-    'webpack-dev-server/client?http://0.0.0.0:8080',
-    "./bootstrap.js"
-  ],
+  entry: "./bootstrap.js",
   output: {
-    path: path.resolve(__dirname, "../gh-pages"),
+    path: path.resolve(__dirname, "../docs"),
     filename: "bootstrap.js",
   },
   mode: "production",
