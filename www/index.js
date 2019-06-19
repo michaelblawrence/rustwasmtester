@@ -1,6 +1,8 @@
 import { Universe, Cell } from "wasm-game-of-life";
 import { memory } from "wasm-game-of-life/wasm_game_of_life_bg";
 
+import { JsSynth } from "./audio";
+
 const CELL_SIZE = 12; // px
 const GRID_COLOR = "#04425a";
 const DEAD_COLOR = "#8bc0c1";
@@ -11,6 +13,7 @@ const ALIVE_COLOR = "#04425a";
 
 let animationHandle = { value: null };
 let renderer = null;
+let synth = null;
 
 function main() {
     const universe = Universe.new();
@@ -24,6 +27,30 @@ function main() {
     renderer = startRenderer(ctx, animationHandle, width, height, gameObjects);
     handleEvents(renderer, gameObjects);
     renderer.start();
+
+    console.time("init synth");
+    synth = new JsSynth();
+    console.timeEnd("init synth");
+    benchSynthing();
+}
+
+function benchSynthing() {
+    console.time("synthing");
+    console.log("begining...");
+    readSynth();
+    synth.noteOn();
+    for (let i = 1; i < 60; i++) {
+        readSynth();
+        console.log(synth.buffer);
+    }
+    console.timeEnd("synthing");
+    console.log("done...");
+}
+
+function readSynth() {
+    console.time("synthread");
+    synth.read();
+    console.timeEnd("synthread");
 }
 
 // ------------------ ------------------ ------------------ ------------------ ------------------
@@ -114,6 +141,9 @@ function handleEvents(renderer, gameObjects) {
                 }
                 gameObjects.universe.reset();
                 renderer.draw();
+                break;
+            case 's':
+                benchSynthing();
                 break;
         }
     }
