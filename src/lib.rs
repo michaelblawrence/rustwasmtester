@@ -1,4 +1,5 @@
-mod utils;
+pub mod utils;
+mod audio;
 
 use wasm_bindgen::prelude::*;
 
