@@ -13,6 +13,8 @@ const ALIVE_COLOR = "#04425a";
 
 let animationHandle = { value: null };
 let renderer = null;
+
+/** @type {JsSynth} */
 let synth = null;
 
 function main() {
@@ -31,26 +33,8 @@ function main() {
     console.time("init synth");
     synth = new JsSynth();
     console.timeEnd("init synth");
-    benchSynthing();
-}
 
-function benchSynthing() {
-    console.time("synthing");
-    console.log("begining...");
-    readSynth();
-    synth.noteOn();
-    for (let i = 1; i < 60; i++) {
-        readSynth();
-        console.log(synth.buffer);
-    }
-    console.timeEnd("synthing");
-    console.log("done...");
-}
-
-function readSynth() {
-    console.time("synthread");
-    synth.read();
-    console.timeEnd("synthread");
+    // benchSynthing();
 }
 
 // ------------------ ------------------ ------------------ ------------------ ------------------
@@ -107,10 +91,33 @@ function startRenderer(ctx, handle, width, height, gameObjects) {
     };
 }
 
+function benchSynthing() {
+    console.time("synthing");
+    console.log("begining...");
+    readSynth();
+    synth.noteOn();
+    for (let i = 1; i < 60; i++) {
+        readSynth();
+        console.log(synth.buffer);
+    }
+    console.timeEnd("synthing");
+    console.log("done...");
+}
+
+function readSynth() {
+    console.time("synthread");
+    synth.read();
+    console.timeEnd("synthread");
+}
+
 function handleEvents(renderer, gameObjects) {
     document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
     document.addEventListener("mousedown", onMouseDown);
 
+    /**
+     * @param {MouseEvent} event
+     */
     function onKeyDown(event) {
         switch (event.key) {
             case ' ':
@@ -145,21 +152,60 @@ function handleEvents(renderer, gameObjects) {
             case 's':
                 benchSynthing();
                 break;
+            case 'p':
+                console.log("starting playing..")
+                synth.play();
+                break;
+            case 'P':
+                console.log("stopping playing..")
+                synth.cancelPlayTimer();
+                break;
+            case 'z':
+                synth.incrFrequency(-1)
+                break;
+            case 'x':
+                synth.incrFrequency(+1)
+                break;
+            case 'Z':
+                synth.incrFrequency(-2)
+                break;
+            case 'X':
+                synth.incrFrequency(+2)
+                break;
+        }
+
+        if (event.shiftKey) {
+            synth.noteOn();
+        }
+    }
+
+    
+    /**
+     * @param {MouseEvent} event
+     */
+    function onKeyUp(event) {
+        if (event.shiftKey) {
+            synth.noteOff();
         }
     }
 
     function onMouseDown(event) {
+        const x = event.offsetX;
+        const y = event.offsetY;
+
+        const {width, height} = renderer.size();
+
+        const ix = Math.floor(x / (CELL_SIZE + 1));
+        const iy = Math.floor(y / (CELL_SIZE + 1));
+
         if (event.button === 0) {
-            const x = event.offsetX;
-            const y = event.offsetY;
-
-            const {w, h} = renderer.size();
-
-            const ix = Math.floor(x / (CELL_SIZE + 1));
-            const iy = Math.floor(y / (CELL_SIZE + 1));
-
             gameObjects.universe.toggle(ix, iy);
             renderer.draw();
+        }
+        console.log({ix, iy});
+        console.log({width, height});
+        if (ix < 4) {
+            synth.play();
         }
     }
 }

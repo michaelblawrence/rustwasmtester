@@ -44,6 +44,10 @@ impl CitySynth {
         self.poly.note_off();
     }
 
+    pub fn set_freq(&mut self, freq: f64) {
+        self.bucket.set(R::Frequency, freq);
+    }
+
     // pub fn get_state(&self, key: R) -> f64 {
     //     self.poly.bucket().get(key)
     // }
