@@ -12,6 +12,17 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen]
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CellEvent {
+    Underpopulation,
+    LivesOn,
+    Overpopulation,
+    Reproduction,
+    NoChange
+}
+
+#[wasm_bindgen]
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cell {
     Dead = 0,
     Alive = 1,
@@ -23,6 +34,7 @@ pub struct Universe {
     height: u32,
     cells: Vec<Cell>,
     next_cells: Vec<Cell>,
+    events: Vec<(CellEvent, u16)>
 }
 
 #[wasm_bindgen]
@@ -33,12 +45,14 @@ impl Universe {
         let height = 64;
 
         let (cells, next_cells) = Universe::init_cells(width, height);
+        let events = vec![(CellEvent::NoChange, 0); 128];
 
         Universe {
             width,
             height,
             cells,
             next_cells,
+            events,
         }
     }
     
@@ -141,20 +155,38 @@ impl Universe {
     fn tick_next_cells(&mut self) {
         for row in 0..self.height {
             for col in 0..self.width {
-                let idx = self.get_index(row, col);
-                let cell = self.next_cells[idx];
-                let live_neighbors = self.live_neighbor_count(row, col);
-
-                let next_cell = match (cell, live_neighbors) {
-                    (Cell::Alive, x) if x < 2 => Cell::Dead,
-                    (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
-                    (Cell::Alive, x) if x > 3 => Cell::Dead,
-                    (Cell::Dead, 3) => Cell::Alive,
-                    (otherwise, _) => otherwise,
-                };
-
-                self.next_cells[idx] = next_cell;
+                self.generate_next_cell(row, col);
             }
+        }
+    }
+
+    fn generate_next_cell(&mut self, row: u32, col: u32) {
+        let idx = self.get_index(row, col);
+        let cell = self.next_cells[idx];
+        let live_neighbors = self.live_neighbor_count(row, col);
+        let event_type = match (cell, live_neighbors) {
+            (Cell::Alive, x) if x < 2           => CellEvent::Underpopulation,
+            (Cell::Alive, 2) | (Cell::Alive, 3) => CellEvent::LivesOn,
+            (Cell::Alive, x) if x > 3           => CellEvent::Overpopulation,
+            (Cell::Dead, 3)                     => CellEvent::Reproduction,
+            (_, _)                              => CellEvent::NoChange,
+        };
+
+        self.publish_cell_event(idx, event_type);
+
+        self.next_cells[idx] = match event_type {
+            CellEvent::Underpopulation => Cell::Dead,
+            CellEvent::LivesOn         => Cell::Alive,
+            CellEvent::Overpopulation  => Cell::Dead,
+            CellEvent::Reproduction    => Cell::Alive,
+            CellEvent::NoChange        => cell,
+        };
+    }
+
+    
+    fn publish_cell_event(&mut self, idx: usize, event_type: CellEvent) {
+        if self.events.len() < 128 {
+            self.events.push((event_type, idx as u16));
         }
     }
 }
