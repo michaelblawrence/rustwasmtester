@@ -1,20 +1,40 @@
 // @ts-check
-import { CitySynth } from "wasm-game-of-life";
+import { CitySynth, Param } from "wasm-game-of-life";
 
 // @ts-ignore
-window.interval = 300;
+window.interval = 200;
+// @ts-ignore
+window.R = Param;
+// @ts-ignore
+window.synth = null;
+// @ts-ignore
+window.getAll = () => console.table(
+    Object.keys(R).reduce(
+        // @ts-ignore
+        (acc, k, i) => {acc[k] = window.synth.get_state(i); return acc;},
+        {}
+    )
+);
 
 export class JsSynth {
+    get freq() {
+        return this._freq;
+    }
+    set freq(value) {
+        this._freq = value;
+        this.synth.set_freq(value)
+    }
 
     constructor() {
         this.active = false;
-        this.freq = 440.0;
         
         this.synth = CitySynth.new();
-        this.synth.set_freq(this.freq);
+        this.freq = 440.0;
+        // @ts-ignore
+        window.synth = this.synth;
 
         this.bufferLength = 2048;
-        this.buffer = new Float64Array(this.bufferLength);
+        this.buffer = new Float32Array(this.bufferLength);
     }
 
     initAudio() {
@@ -39,27 +59,36 @@ export class JsSynth {
             this.customWaveform.disconnect(this.audioContext.destination);
         } else {
             this.freq = 440.0;
-            this.synth.set_freq(this.freq);
             
-            this.customWaveform.onaudioprocess = audioProcessingEvent => {
-                const outputBuffer = audioProcessingEvent.outputBuffer;
-                const outputData = outputBuffer.getChannelData(0);
-                this.read();
-                for (var sample = 0; sample < outputData.length; sample++) {
-                    outputData[sample] = this.buffer[sample];
-                }
-            }
+            this.customWaveform.addEventListener("audioprocess", this.onAudioProcess.bind(this));
             this.customWaveform.connect(this.audioContext.destination);
-            let noteActive = false;
-            this.noteToggleTimer = setInterval(() => {
+            this.startPeriodicNotes();
+        }
+    }
+
+    startPeriodicNotes() {
+        let noteActive = false;
+        this.noteToggleTimer = setInterval(
+            () => {
                 if (noteActive) {
                     this.noteOff();
-                } else {
+                }
+                else {
                     this.noteOn();
                 }
                 noteActive = !noteActive;
-            }, interval);
-        }
+            },
+            // @ts-ignore
+            interval);
+    }
+
+    /**
+     * @param {AudioProcessingEvent} audioProcessingEvent
+     */
+    onAudioProcess(audioProcessingEvent) {
+        const outputBuffer = audioProcessingEvent.outputBuffer;
+        this.read();
+        outputBuffer.copyToChannel(this.buffer, 0);
     }
 
     cancelPlayTimer() {

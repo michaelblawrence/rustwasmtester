@@ -28,7 +28,7 @@ impl CitySynth {
         }
     } 
 
-    pub fn read(&mut self, buffer: &mut [f64]) {
+    pub fn read(&mut self, buffer: &mut [f32]) {
         self.poly.read(buffer);
     }
 
@@ -44,15 +44,87 @@ impl CitySynth {
         self.poly.note_off();
     }
 
-    pub fn set_freq(&mut self, freq: f64) {
+    pub fn set_freq(&mut self, freq: f64) -> f64 {
+        let old_value = self.poly.state().get(R::Frequency);
         self.bucket.set(R::Frequency, freq);
+        old_value
     }
 
-    // pub fn get_state(&self, key: R) -> f64 {
-    //     self.poly.bucket().get(key)
-    // }
+    pub fn get_state(&self, key: Param) -> f64 {
+        if let Some(key) = key.to_inner_param() {
+            self.poly.state().get(key)
+        } else {
+            0.0
+        }
+    }
 
-    // pub fn set_state(&mut self, key: R, value: f64) {
-    //     self.poly.bucket().set(key, value);
-    // }
+    pub fn set_state(&mut self, key: Param, value: f64) -> f64 {
+        if let Some(key) = key.to_inner_param() {
+            let old_value = self.poly.state().get(key);
+            self.poly.state_mut().set(key, value);
+            old_value
+        } else {
+            0.0
+        }
+    }
+
+    pub fn refresh(&mut self) {
+        self.poly.refresh();
+    }
+}
+
+#[wasm_bindgen]
+pub enum Param {
+    Attack,
+    // AmpLFOrate,
+    // AmpLFOwidth,
+    Decay,
+    // FMScale,
+    // Frequency,
+    // GeneralAtten,
+    Harmonic2Gain,
+    HarmonicsControl,
+    // HarmonicFix,
+    // HarmonicFunction,
+    // HarmonicPhase,
+    // HarmonicV1,
+    HPFCutoff,
+    LPF,
+    // LPFattack,
+    // LPFceiling,
+    // LPFenvelope,
+    // LPFfloor,
+    LPFmodrate,
+    LPFrelease,
+    LPFwidth,
+    // MaxHarmonic,
+    // MaxVelocity,
+    // Pitchmod,
+    // PitchmodWidth,
+    // PitchBendFactor,
+    Release,
+    SubOscGain,
+    Sustain,
+    WFunction,
+}
+
+impl Param {
+    fn to_inner_param(&self) -> Option<R> {
+        match self {
+            Param::Attack                => Some(R::Attack),
+            Param::Decay                 => Some(R::Decay),
+            Param::Harmonic2Gain         => Some(R::Harmonic2Gain),
+            Param::HarmonicsControl      => Some(R::HarmonicsControl),
+            Param::HPFCutoff             => Some(R::HPFCutoff),
+            Param::LPF                   => Some(R::LPF),
+            Param::LPFmodrate            => Some(R::LPFmodrate),
+            Param::LPFrelease            => Some(R::LPFrelease),
+            Param::LPFwidth              => Some(R::LPFwidth),
+            Param::Release               => Some(R::Release),
+            Param::SubOscGain            => Some(R::SubOscGain),
+            Param::Sustain               => Some(R::Sustain),
+            Param::WFunction             => Some(R::WFunction),
+            // _ => None,
+        }
+    }
 }

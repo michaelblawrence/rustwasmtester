@@ -152,6 +152,9 @@ function handleEvents(renderer, gameObjects) {
             case 's':
                 benchSynthing();
                 break;
+            case 'o':
+                window.getAll();
+                break;
             case 'p':
                 console.log("starting playing..")
                 synth.play();
